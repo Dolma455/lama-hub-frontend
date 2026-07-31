@@ -7,8 +7,9 @@ import { LikeButton } from './LikeButton';
 import { SaveButton } from './SaveButton';
 import { ShareButton } from './ShareButton';
 import { TagChip } from './TagChip';
-import { CommentDrawer } from './CommentDrawer';
+import { CommentSection } from './CommentSection';
 import { useNavigate } from 'react-router-dom';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 interface PostCardProps {
   item: FeedItemDto;
@@ -60,7 +61,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
               {item.creatorDisplayName}
             </h4>
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {new Date(item.uploadDate).toLocaleDateString()}
+              {formatRelativeTime(item.uploadDate)}
             </span>
           </div>
         </div>
@@ -192,17 +193,18 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
             initialLikeCount={item.likeCount}
           />
           <button
-            onClick={() => setIsCommentsOpen(true)}
+            onClick={() => setIsCommentsOpen((prev) => !prev)}
             style={{
               background: 'none',
               border: 'none',
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
-              color: 'var(--text-secondary)',
+              color: isCommentsOpen ? 'var(--accent)' : 'var(--text-secondary)',
               cursor: 'pointer',
               fontSize: '0.9rem',
               fontWeight: 600,
+              transition: 'color 0.2s ease',
             }}
           >
             <MessageCircle size={22} />
@@ -213,10 +215,9 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
         <SaveButton contentId={item.contentId} contentType={item.contentType} />
       </div>
 
-      {/* Comment Drawer */}
-      <CommentDrawer
+      {/* Inline Comment Section */}
+      <CommentSection
         isOpen={isCommentsOpen}
-        onClose={() => setIsCommentsOpen(false)}
         contentId={item.contentId}
         contentType={item.contentType}
         onCommentAdded={() => setCommentCount((prev) => prev + 1)}
