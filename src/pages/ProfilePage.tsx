@@ -17,34 +17,50 @@ export const ProfilePage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchProfile = async () => {
       setLoading(true);
       try {
         if (user?.role === 'Creator') {
           const res = await userService.getCreatorProfile();
-          setProfile(res);
-          useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
+          if (isMounted) {
+            setProfile(res);
+            if (res.profileImageUrl !== user?.profileImageUrl) {
+              useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
+            }
+          }
         } else {
           const res = await userService.getConsumerProfile();
-          setProfile(res);
-          useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
+          if (isMounted) {
+            setProfile(res);
+            if (res.profileImageUrl !== user?.profileImageUrl) {
+              useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
+            }
+          }
         }
 
         const [pList, vList] = await Promise.all([
           photoService.getMine().catch(() => []),
           videoService.getMine().catch(() => []),
         ]);
-        setPhotos(pList);
-        setVideos(vList);
+        if (isMounted) {
+          setPhotos(pList);
+          setVideos(vList);
+        }
       } catch (err) {
         console.error('Failed to load profile:', err);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProfile();
-  }, [user]);
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.userId, user?.role]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;

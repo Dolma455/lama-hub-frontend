@@ -21,18 +21,27 @@ export const SettingsPage: React.FC = () => {
   const { paletteId, setPalette } = useThemeStore();
 
   useEffect(() => {
+    let isMounted = true;
     const fetchCurrentProfile = async () => {
       try {
         if (user?.role === 'Creator') {
           const profile = await userService.getCreatorProfile();
-          setBio(profile.bio || '');
-          setAvatarUrl(profile.profileImageUrl || null);
-          useAuthStore.getState().updateUser({ profileImageUrl: profile.profileImageUrl || null });
+          if (isMounted) {
+            setBio(profile.bio || '');
+            setAvatarUrl(profile.profileImageUrl || null);
+            if (profile.profileImageUrl !== user?.profileImageUrl) {
+              useAuthStore.getState().updateUser({ profileImageUrl: profile.profileImageUrl || null });
+            }
+          }
         } else {
           const profile = await userService.getConsumerProfile();
-          setBio(profile.bio || '');
-          setAvatarUrl(profile.profileImageUrl || null);
-          useAuthStore.getState().updateUser({ profileImageUrl: profile.profileImageUrl || null });
+          if (isMounted) {
+            setBio(profile.bio || '');
+            setAvatarUrl(profile.profileImageUrl || null);
+            if (profile.profileImageUrl !== user?.profileImageUrl) {
+              useAuthStore.getState().updateUser({ profileImageUrl: profile.profileImageUrl || null });
+            }
+          }
         }
       } catch (err) {
         console.error('Failed to fetch profile settings:', err);
@@ -40,7 +49,10 @@ export const SettingsPage: React.FC = () => {
     };
 
     fetchCurrentProfile();
-  }, [user]);
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.userId, user?.role]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;

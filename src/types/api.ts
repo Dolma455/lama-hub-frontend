@@ -24,7 +24,7 @@ export interface ConsumerProfileDto {
   email: string;
   role: UserRole;
   bio?: string;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
   followingCount: number;
   savedItemsCount: number;
   createdAtUtc: string;
@@ -36,7 +36,7 @@ export interface CreatorProfileDto {
   email: string;
   role: UserRole;
   bio?: string;
-  profileImageUrl?: string;
+  profileImageUrl?: string | null;
   followersCount: number;
   photoCount: number;
   videoCount: number;
