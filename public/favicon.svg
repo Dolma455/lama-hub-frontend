@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <rect width="100" height="100" rx="28" fill="#0f172a" />
+  <rect x="5" y="5" width="90" height="90" rx="23" fill="none" stroke="#7886C7" stroke-width="6" />
+  <text 
+    x="50" 
+    y="66" 
+    font-family="Georgia, cursive, sans-serif" 
+    font-style="italic" 
+    font-weight="bold" 
+    font-size="46" 
+    fill="#7886C7" 
+    text-anchor="middle"
+    letter-spacing="-2"
+  >LH</text>
+</svg>

@@ -1,0 +1,195 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Pacifico&display=swap');
+
+/*
+  Palette (accent-only — NOT used for backgrounds):
+    #FFF2F2  — warm blush: subtle badge tints, hover fills
+    #A9B5DF  — soft blue-purple: secondary text, muted icons
+    #7886C7  — mid blue-purple: icon color, border, active states
+    #2D336B  — deep navy: primary accent, buttons, strong text
+
+  Backgrounds:
+    Dark  → true black (#0a0a0f) / near-black cards (#111116)
+    Light → pure white (#ffffff) / off-white cards (#f8f8fb)
+*/
+
+/* ─── Dark Mode (default) ─────────────────────────────────────── */
+:root {
+  /* Backgrounds — black family */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #0f0f16;
+  --bg-card: #111118;
+  --bg-sidebar: #0d0d14;
+  --bg-input: #16161f;
+  --bg-hover: #1a1a24;
+
+  /* Borders — palette-tinted but dark */
+  --border-color: rgba(120, 134, 199, 0.18);
+  --border-subtle: rgba(120, 134, 199, 0.09);
+
+  /* Text */
+  --text-primary: #f5f5ff;
+  /* near white */
+  --text-secondary: #A9B5DF;
+  /* palette: soft blue-purple */
+  --text-muted: #7886C7;
+  /* palette: mid blue-purple */
+  --text-on-accent: #ffffff;
+
+  /* Accent — palette colors as accents */
+  --accent: #7886C7;
+  /* mid blue-purple */
+  --accent-dark: #2D336B;
+  /* deep navy */
+  --accent-light: #A9B5DF;
+  /* soft blue-purple */
+  --accent-muted: rgba(120, 134, 199, 0.12);
+  --accent-muted-border: rgba(120, 134, 199, 0.25);
+  --accent-blush: rgba(255, 242, 242, 0.06);
+  /* #FFF2F2 subtle fill */
+
+  /* Semantic */
+  --danger: #f87171;
+  --success: #4ade80;
+
+  /* Shadows */
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.7);
+  --shadow-nav: 0 1px 0 var(--border-subtle);
+
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  color-scheme: dark;
+}
+
+/* ─── Light Mode ──────────────────────────────────────────────── */
+:root[data-theme='light'] {
+  /* Backgrounds — white family */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f4f4f8;
+  --bg-card: #ffffff;
+  --bg-sidebar: #f8f8fb;
+  --bg-input: #f2f2f7;
+  --bg-hover: #ecedf5;
+
+  /* Borders — palette-tinted but light */
+  --border-color: rgba(45, 51, 107, 0.14);
+  --border-subtle: rgba(45, 51, 107, 0.07);
+
+  /* Text */
+  --text-primary: #0f0f14;
+  /* near black */
+  --text-secondary: #2D336B;
+  /* palette: deep navy */
+  --text-muted: #7886C7;
+  /* palette: mid blue-purple */
+  --text-on-accent: #ffffff;
+
+  /* Accent — palette colors as accents */
+  --accent: #2D336B;
+  /* deep navy as primary button */
+  --accent-dark: #1e2449;
+  --accent-light: #7886C7;
+  /* mid blue-purple */
+  --accent-muted: rgba(45, 51, 107, 0.08);
+  --accent-muted-border: rgba(45, 51, 107, 0.15);
+  --accent-blush: rgba(255, 242, 242, 0.6);
+  /* #FFF2F2 warm hover tint */
+
+  /* Semantic */
+  --danger: #dc2626;
+  --success: #16a34a;
+
+  /* Shadows */
+  --shadow-card: 0 1px 8px rgba(45, 51, 107, 0.08), 0 0 0 1px rgba(45, 51, 107, 0.06);
+  --shadow-nav: 0 1px 0 var(--border-subtle);
+
+  color-scheme: light;
+}
+
+/* ─── Responsive Left Navigation & Watermark ───────────────────── */
+@media (max-width: 1100px) {
+  .left-watermark {
+    display: none !important;
+  }
+}
+
+/* ─── Reset ───────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ─── Inputs ──────────────────────────────────────────────────── */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent-muted-border);
+  border-radius: 99px;
+}
+
+/* ─── Keyframes ───────────────────────────────────────────────── */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
+
+  100% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ─── Utilities ───────────────────────────────────────────────── */
+.brand-cursive {
+  font-family: 'Pacifico', cursive, sans-serif !important;
+}
+
+.skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  aside {
+    display: none !important;
+  }
+
+  .mobile-only {
+    display: flex !important;
+  }
+}
