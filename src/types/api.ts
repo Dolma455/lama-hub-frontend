@@ -179,3 +179,15 @@ export interface PagedResult<T> {
   hasPreviousPage: boolean;
   hasNextPage: boolean;
 }
+
+export interface SharedPostDto {
+  sharedPostId: string;
+  contentType: 'Photo' | 'Video';
+  contentId: string;
+  title: string;
+  mediaUrl: string;
+  sharedByUserId: string;
+  sharedByUserDisplayName: string;
+  caption?: string | null;
+  sharedAtUtc: string;
+}

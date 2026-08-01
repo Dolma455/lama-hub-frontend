@@ -1,16 +1,18 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { userService, photoService, videoService } from '../services/apiServices';
-import type { ConsumerProfileDto, CreatorProfileDto, PhotoListItemDto, VideoListItemDto } from '../types/api';
+import { userService, photoService, videoService, sharedPostService } from '../services/apiServices';
+import type { ConsumerProfileDto, CreatorProfileDto, PhotoListItemDto, VideoListItemDto, SharedPostDto } from '../types/api';
 import { UserAvatar } from '../components/UserAvatar';
-import { Image, Video, Camera, Trash2, Loader2, X } from 'lucide-react';
+import { Image, Video, Camera, Trash2, Loader2, X, Repeat2 } from 'lucide-react';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuthStore();
   const [profile, setProfile] = useState<ConsumerProfileDto | CreatorProfileDto | null>(null);
   const [photos, setPhotos] = useState<PhotoListItemDto[]>([]);
   const [videos, setVideos] = useState<VideoListItemDto[]>([]);
-  const [activeTab, setActiveTab] = useState<'photos' | 'videos'>('photos');
+  const [sharedPosts, setSharedPosts] = useState<SharedPostDto[]>([]);
+  const [activeTab, setActiveTab] = useState<'photos' | 'videos' | 'reposts'>('photos');
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [isViewingPhoto, setIsViewingPhoto] = useState(false);
@@ -39,13 +41,15 @@ export const ProfilePage: React.FC = () => {
           }
         }
 
-        const [pList, vList] = await Promise.all([
+        const [pList, vList, sList] = await Promise.all([
           photoService.getMine().catch(() => []),
           videoService.getMine().catch(() => []),
+          sharedPostService.getMySharedPosts().catch(() => []),
         ]);
         if (isMounted) {
           setPhotos(pList);
           setVideos(vList);
+          setSharedPosts(sList);
         }
       } catch (err) {
         console.error('Failed to load profile:', err);
@@ -123,59 +127,41 @@ export const ProfilePage: React.FC = () => {
             position: 'fixed',
             inset: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(10px)',
+            backdropFilter: 'blur(6px)',
+            zIndex: 1000,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000,
             padding: '20px',
           }}
           onClick={() => setIsViewingPhoto(false)}
         >
-          <div
-            style={{
-              position: 'relative',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
             <button
-              type="button"
               onClick={() => setIsViewingPhoto(false)}
               style={{
                 position: 'absolute',
-                top: '-44px',
+                top: '-40px',
                 right: '0',
                 background: 'none',
                 border: 'none',
-                color: '#ffffff',
+                color: 'white',
                 cursor: 'pointer',
-                padding: '4px',
               }}
-              title="Close"
             >
               <X size={28} />
             </button>
             <img
               src={profile.profileImageUrl}
-              alt={user?.displayName || 'Profile'}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '80vh',
-                borderRadius: '16px',
-                objectFit: 'contain',
-                boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-              }}
+              alt="Profile avatar"
+              style={{ maxWidth: '100%', maxHeight: '80vh', borderRadius: '16px', objectFit: 'contain' }}
+              onClick={(e) => e.stopPropagation()}
             />
           </div>
         </div>
       )}
 
-      {/* Profile Header Card */}
+      {/* Profile Header */}
       <div
         style={{
           backgroundColor: 'var(--bg-card)',
@@ -186,76 +172,72 @@ export const ProfilePage: React.FC = () => {
           boxShadow: 'var(--shadow-card)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          {/* Avatar Container with Icon-Only Controls */}
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+          {/* Avatar with Upload Hover Action */}
+          <div style={{ position: 'relative', display: 'inline-block' }}>
             <div
-              onClick={() => {
-                if (profile?.profileImageUrl) setIsViewingPhoto(true);
-              }}
+              onClick={() => profile?.profileImageUrl && setIsViewingPhoto(true)}
               style={{ cursor: profile?.profileImageUrl ? 'pointer' : 'default' }}
-              title={profile?.profileImageUrl ? 'Click to view photo' : ''}
             >
-              <UserAvatar src={profile?.profileImageUrl} name={user?.displayName || 'User'} size={84} />
+              <UserAvatar src={profile?.profileImageUrl} name={user?.displayName || 'User'} size={88} />
             </div>
-            
+
             <input
               type="file"
               ref={fileInputRef}
+              onChange={handleAvatarChange}
               accept="image/*"
               style={{ display: 'none' }}
-              onChange={handleAvatarChange}
             />
 
-            {/* Icon-Only Action Buttons (Edit, View, Delete) */}
-            <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
-              {/* Edit / Upload Icon Button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              title="Change Profile Picture"
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                right: 0,
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--accent)',
+                color: 'var(--text-on-accent)',
+                border: '2px solid var(--bg-card)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+              }}
+            >
+              {uploadingAvatar ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+            </button>
+
+            {profile?.profileImageUrl && (
               <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={handleAvatarDelete}
                 disabled={uploadingAvatar}
-                title={profile?.profileImageUrl ? 'Edit / Replace photo' : 'Upload photo'}
+                title="Remove Profile Picture"
                 style={{
-                  width: '32px',
-                  height: '32px',
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
+                  backgroundColor: 'var(--danger)',
+                  color: 'white',
+                  border: '2px solid var(--bg-card)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
-                  transition: 'transform 0.15s ease',
+                  cursor: 'pointer',
                 }}
               >
-                {uploadingAvatar ? <Loader2 size={14} className="spin" /> : <Camera size={15} color="var(--accent)" />}
+                <Trash2 size={12} />
               </button>
-
-              {/* Delete Icon Button */}
-              {profile?.profileImageUrl && (
-                <button
-                  type="button"
-                  onClick={handleAvatarDelete}
-                  disabled={uploadingAvatar}
-                  title="Delete profile photo"
-                  style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    color: 'var(--danger)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
-                  }}
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-            </div>
+            )}
           </div>
 
           <div style={{ flex: 1 }}>
@@ -304,27 +286,44 @@ export const ProfilePage: React.FC = () => {
                     </span>
                     <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Videos</span>
                   </div>
+                  <div>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {sharedPosts.length}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reposts</span>
+                  </div>
                 </>
               ) : (
-                <div>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                    {(profile as ConsumerProfileDto)?.followingCount || 0}
-                  </span>
-                  <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Following</span>
-                </div>
+                <>
+                  <div>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {(profile as ConsumerProfileDto)?.followingCount || 0}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Following</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {sharedPosts.length}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reposts</span>
+                  </div>
+                </>
               )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs Bar */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
         <button onClick={() => setActiveTab('photos')} style={tabStyle(activeTab === 'photos')}>
           <Image size={18} /> Photos ({photos.length})
         </button>
         <button onClick={() => setActiveTab('videos')} style={tabStyle(activeTab === 'videos')}>
           <Video size={18} /> Videos ({videos.length})
+        </button>
+        <button onClick={() => setActiveTab('reposts')} style={tabStyle(activeTab === 'reposts')}>
+          <Repeat2 size={18} /> Reposts ({sharedPosts.length})
         </button>
       </div>
 
@@ -341,16 +340,79 @@ export const ProfilePage: React.FC = () => {
             ))}
           </div>
         )
-      ) : videos.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No uploaded videos yet.</p>
+      ) : activeTab === 'videos' ? (
+        videos.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No uploaded videos yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+            {videos.map((v) => (
+              <div key={v.videoId} style={{ borderRadius: '12px', overflow: 'hidden', height: '180px', backgroundColor: 'var(--bg-primary)' }}>
+                <video src={v.blobUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+            ))}
+          </div>
+        )
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
-          {videos.map((v) => (
-            <div key={v.videoId} style={{ borderRadius: '12px', overflow: 'hidden', height: '180px', backgroundColor: 'var(--bg-primary)' }}>
-              <video src={v.blobUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            </div>
-          ))}
-        </div>
+        /* Reposts Tab Content */
+        sharedPosts.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No reposts yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
+            {sharedPosts.map((s) => (
+              <div
+                key={s.sharedPostId}
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: '14px',
+                  border: '1px solid var(--border-color)',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                {/* Header with Repost Tag */}
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    backgroundColor: 'var(--accent-muted)',
+                    borderBottom: '1px solid var(--accent-muted-border)',
+                  }}
+                >
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Repeat2 size={13} /> Reposted
+                  </span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {formatRelativeTime(s.sharedAtUtc)}
+                  </span>
+                </div>
+
+                {/* Media Preview */}
+                <div style={{ height: '150px', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
+                  {s.contentType === 'Photo' ? (
+                    <img src={s.mediaUrl} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <video src={s.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
+                </div>
+
+                {/* Caption / Title */}
+                <div style={{ padding: '10px 12px' }}>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {s.title}
+                  </h4>
+                  {s.caption && (
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: '1.3' }}>
+                      "{s.caption}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
