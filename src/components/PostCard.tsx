@@ -210,7 +210,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
             <MessageCircle size={22} />
             <span>{commentCount}</span>
           </button>
-          <ShareButton title={item.title} />
+          <ShareButton contentId={item.contentId} contentType={item.contentType} title={item.title} />
         </div>
         <SaveButton contentId={item.contentId} contentType={item.contentType} />
       </div>

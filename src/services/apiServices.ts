@@ -16,6 +16,7 @@ import type {
   SavedContentDto,
   PagedResult,
   UserDto,
+  SharedPostDto,
 } from '../types/api';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -331,6 +332,29 @@ export const savedService = {
 export const recommendationService = {
   getCreatorRecommendations: async (): Promise<CreatorRecommendationDto[]> => {
     const res = await apiClient.get<CreatorRecommendationDto[]>('/api/recommendations/creators');
+    return res.data;
+  },
+};
+
+export const sharedPostService = {
+  sharePhoto: async (photoId: string, caption?: string): Promise<SharedPostDto> => {
+    const res = await apiClient.post<SharedPostDto>(`/api/photos/${photoId}/share`, {
+      caption: caption || null,
+    });
+    return res.data;
+  },
+  shareVideo: async (videoId: string, caption?: string): Promise<SharedPostDto> => {
+    const res = await apiClient.post<SharedPostDto>(`/api/videos/${videoId}/share`, {
+      caption: caption || null,
+    });
+    return res.data;
+  },
+  getMySharedPosts: async (): Promise<SharedPostDto[]> => {
+    const res = await apiClient.get<SharedPostDto[]>('/api/photos/shared/mine');
+    return res.data;
+  },
+  getSharedPostsFeed: async (): Promise<SharedPostDto[]> => {
+    const res = await apiClient.get<SharedPostDto[]>('/api/photos/shared/feed');
     return res.data;
   },
 };
