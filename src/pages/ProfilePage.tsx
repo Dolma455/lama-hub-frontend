@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
-import { userService, photoService, videoService, sharedPostService } from '../services/apiServices';
-import type { ConsumerProfileDto, CreatorProfileDto, PhotoListItemDto, VideoListItemDto, SharedPostDto } from '../types/api';
+import { userService, photoService, videoService, sharedPostService, savedService } from '../services/apiServices';
+import type { ConsumerProfileDto, CreatorProfileDto, PhotoListItemDto, VideoListItemDto, SharedPostDto, SavedContentDto, FeedItemDto } from '../types/api';
 import { UserAvatar } from '../components/UserAvatar';
-import { Image, Video, Camera, Trash2, Loader2, X, Repeat2 } from 'lucide-react';
+import { PostCard } from '../components/PostCard';
+import { MediaDetailModal } from '../components/MediaDetailModal';
+import { Image, Video, Camera, Trash2, Loader2, X, Repeat2, Bookmark, Rss } from 'lucide-react';
 import { formatRelativeTime } from '../utils/dateUtils';
 
 export const ProfilePage: React.FC = () => {
@@ -11,59 +13,67 @@ export const ProfilePage: React.FC = () => {
   const [profile, setProfile] = useState<ConsumerProfileDto | CreatorProfileDto | null>(null);
   const [photos, setPhotos] = useState<PhotoListItemDto[]>([]);
   const [videos, setVideos] = useState<VideoListItemDto[]>([]);
+  const [savedItems, setSavedItems] = useState<SavedContentDto[]>([]);
   const [sharedPosts, setSharedPosts] = useState<SharedPostDto[]>([]);
-  const [activeTab, setActiveTab] = useState<'photos' | 'videos' | 'reposts'>('photos');
+  const [activeTab, setActiveTab] = useState<'feed' | 'photos' | 'videos' | 'saved' | 'reposts'>('feed');
   const [loading, setLoading] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [isViewingPhoto, setIsViewingPhoto] = useState(false);
+
+  // Profile Picture Viewing Modal
+  const [isViewingAvatar, setIsViewingAvatar] = useState(false);
+
+  // Selected Media for Lightbox Modal
+  const [selectedMedia, setSelectedMedia] = useState<{
+    contentId: string;
+    contentType: 'Photo' | 'Video';
+    title: string;
+    caption?: string | null;
+    location?: string | null;
+    mediaUrl: string;
+    createdAtUtc?: string;
+    likeCount?: number;
+    commentCount?: number;
+  } | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        if (user?.role === 'Creator') {
-          const res = await userService.getCreatorProfile();
-          if (isMounted) {
-            setProfile(res);
-            if (res.profileImageUrl !== user?.profileImageUrl) {
-              useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
-            }
-          }
-        } else {
-          const res = await userService.getConsumerProfile();
-          if (isMounted) {
-            setProfile(res);
-            if (res.profileImageUrl !== user?.profileImageUrl) {
-              useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
-            }
-          }
+  const fetchProfileData = async () => {
+    setLoading(true);
+    try {
+      if (user?.role === 'Creator') {
+        const res = await userService.getCreatorProfile();
+        setProfile(res);
+        if (res.profileImageUrl !== user?.profileImageUrl) {
+          useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
         }
-
-        const [pList, vList, sList] = await Promise.all([
-          photoService.getMine().catch(() => []),
-          videoService.getMine().catch(() => []),
-          sharedPostService.getMySharedPosts().catch(() => []),
-        ]);
-        if (isMounted) {
-          setPhotos(pList);
-          setVideos(vList);
-          setSharedPosts(sList);
-        }
-      } catch (err) {
-        console.error('Failed to load profile:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
+      } else {
+        const res = await userService.getConsumerProfile();
+        setProfile(res);
+        if (res.profileImageUrl !== user?.profileImageUrl) {
+          useAuthStore.getState().updateUser({ profileImageUrl: res.profileImageUrl || null });
         }
       }
-    };
 
-    fetchProfile();
-    return () => {
-      isMounted = false;
-    };
+      const [pList, vList, sList, savedRes] = await Promise.all([
+        photoService.getMine().catch(() => []),
+        videoService.getMine().catch(() => []),
+        sharedPostService.getMySharedPosts().catch(() => []),
+        savedService.getSavedContent().catch(() => ({ items: [] })),
+      ]);
+
+      setPhotos(pList);
+      setVideos(vList);
+      setSharedPosts(sList);
+      setSavedItems(savedRes.items || []);
+    } catch (err) {
+      console.error('Failed to load profile:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfileData();
   }, [user?.userId, user?.role]);
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,8 +104,42 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  // Convert photos & videos into a unified Feed Item list for the Facebook-style Feed tab
+  const myFeedItems: FeedItemDto[] = [
+    ...photos.map((p) => ({
+      contentId: p.photoId,
+      contentType: 'Photo' as const,
+      creatorId: user?.userId || '',
+      creatorDisplayName: user?.displayName || '',
+      creatorProfileImageUrl: profile?.profileImageUrl || undefined,
+      title: p.title,
+      caption: p.caption || undefined,
+      location: p.location || undefined,
+      mediaUrl: p.blobUrl,
+      likeCount: p.likeCount,
+      commentCount: p.commentCount,
+      uploadDate: p.createdAtUtc,
+      isLikedByCurrentUser: false,
+    })),
+    ...videos.map((v) => ({
+      contentId: v.videoId,
+      contentType: 'Video' as const,
+      creatorId: user?.userId || '',
+      creatorDisplayName: user?.displayName || '',
+      creatorProfileImageUrl: profile?.profileImageUrl || undefined,
+      title: v.title,
+      caption: v.caption || undefined,
+      location: undefined,
+      mediaUrl: v.blobUrl,
+      likeCount: v.likeCount || 0,
+      commentCount: v.commentCount || 0,
+      uploadDate: v.createdAtUtc,
+      isLikedByCurrentUser: false,
+    })),
+  ].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
+
   if (loading) {
-    return <p style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>Loading profile...</p>;
+    return <p style={{ color: 'var(--text-secondary)', textAlign: 'center', marginTop: '40px' }}>Loading profile...</p>;
   }
 
   const isCreator = user?.role === 'Creator';
@@ -120,8 +164,8 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div>
-      {/* Photo Viewer Modal */}
-      {isViewingPhoto && profile?.profileImageUrl && (
+      {/* Avatar Lightbox Modal */}
+      {isViewingAvatar && profile?.profileImageUrl && (
         <div
           style={{
             position: 'fixed',
@@ -134,11 +178,11 @@ export const ProfilePage: React.FC = () => {
             justifyContent: 'center',
             padding: '20px',
           }}
-          onClick={() => setIsViewingPhoto(false)}
+          onClick={() => setIsViewingAvatar(false)}
         >
           <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
             <button
-              onClick={() => setIsViewingPhoto(false)}
+              onClick={() => setIsViewingAvatar(false)}
               style={{
                 position: 'absolute',
                 top: '-40px',
@@ -161,6 +205,32 @@ export const ProfilePage: React.FC = () => {
         </div>
       )}
 
+      {/* Media Detail Lightbox Modal */}
+      {selectedMedia && (
+        <MediaDetailModal
+          contentId={selectedMedia.contentId}
+          contentType={selectedMedia.contentType}
+          title={selectedMedia.title}
+          caption={selectedMedia.caption}
+          location={selectedMedia.location}
+          mediaUrl={selectedMedia.mediaUrl}
+          creatorId={user?.userId}
+          creatorDisplayName={user?.displayName}
+          createdAtUtc={selectedMedia.createdAtUtc}
+          initialLikeCount={selectedMedia.likeCount || 0}
+          initialCommentCount={selectedMedia.commentCount || 0}
+          onClose={() => setSelectedMedia(null)}
+          onUpdate={() => {
+            fetchProfileData();
+            setSelectedMedia(null);
+          }}
+          onDelete={() => {
+            fetchProfileData();
+            setSelectedMedia(null);
+          }}
+        />
+      )}
+
       {/* Profile Header */}
       <div
         style={{
@@ -173,10 +243,10 @@ export const ProfilePage: React.FC = () => {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
-          {/* Avatar with Upload Hover Action */}
+          {/* Avatar with Upload Action */}
           <div style={{ position: 'relative', display: 'inline-block' }}>
             <div
-              onClick={() => profile?.profileImageUrl && setIsViewingPhoto(true)}
+              onClick={() => profile?.profileImageUrl && setIsViewingAvatar(true)}
               style={{ cursor: profile?.profileImageUrl ? 'pointer' : 'default' }}
             >
               <UserAvatar src={profile?.profileImageUrl} name={user?.displayName || 'User'} size={88} />
@@ -288,9 +358,9 @@ export const ProfilePage: React.FC = () => {
                   </div>
                   <div>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-                      {sharedPosts.length}
+                      {savedItems.length}
                     </span>
-                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Reposts</span>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saved</span>
                   </div>
                 </>
               ) : (
@@ -300,6 +370,12 @@ export const ProfilePage: React.FC = () => {
                       {(profile as ConsumerProfileDto)?.followingCount || 0}
                     </span>
                     <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Following</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      {savedItems.length}
+                    </span>
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>Saved</span>
                   </div>
                   <div>
                     <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -314,28 +390,92 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Tabs Bar */}
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+      {/* Profile Tabs */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+        <button onClick={() => setActiveTab('feed')} style={tabStyle(activeTab === 'feed')}>
+          <Rss size={18} /> My Feed ({myFeedItems.length})
+        </button>
         <button onClick={() => setActiveTab('photos')} style={tabStyle(activeTab === 'photos')}>
           <Image size={18} /> Photos ({photos.length})
         </button>
         <button onClick={() => setActiveTab('videos')} style={tabStyle(activeTab === 'videos')}>
           <Video size={18} /> Videos ({videos.length})
         </button>
+        <button onClick={() => setActiveTab('saved')} style={tabStyle(activeTab === 'saved')}>
+          <Bookmark size={18} /> Saved ({savedItems.length})
+        </button>
         <button onClick={() => setActiveTab('reposts')} style={tabStyle(activeTab === 'reposts')}>
           <Repeat2 size={18} /> Reposts ({sharedPosts.length})
         </button>
       </div>
 
-      {/* Grid Content */}
-      {activeTab === 'photos' ? (
+      {/* Tab Contents */}
+      {activeTab === 'feed' ? (
+        myFeedItems.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No posts created yet.</p>
+        ) : (
+          <div>
+            {myFeedItems.map((item) => (
+              <PostCard
+                key={`${item.contentType}-${item.contentId}`}
+                item={item}
+                onUpdate={() => fetchProfileData()}
+                onDelete={() => fetchProfileData()}
+              />
+            ))}
+          </div>
+        )
+      ) : activeTab === 'photos' ? (
         photos.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No uploaded photos yet.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
             {photos.map((p) => (
-              <div key={p.photoId} style={{ borderRadius: '12px', overflow: 'hidden', height: '180px' }}>
+              <div
+                key={p.photoId}
+                onClick={() =>
+                  setSelectedMedia({
+                    contentId: p.photoId,
+                    contentType: 'Photo',
+                    title: p.title,
+                    caption: p.caption,
+                    location: p.location,
+                    mediaUrl: p.blobUrl,
+                    createdAtUtc: p.createdAtUtc,
+                    likeCount: p.likeCount,
+                    commentCount: p.commentCount,
+                  })
+                }
+                style={{
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  height: '180px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--bg-primary)',
+                  position: 'relative',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
                 <img src={p.blobUrl} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    width: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.65)',
+                    color: 'white',
+                    padding: '6px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {p.title}
+                </div>
               </div>
             ))}
           </div>
@@ -344,10 +484,110 @@ export const ProfilePage: React.FC = () => {
         videos.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No uploaded videos yet.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '12px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
             {videos.map((v) => (
-              <div key={v.videoId} style={{ borderRadius: '12px', overflow: 'hidden', height: '180px', backgroundColor: 'var(--bg-primary)' }}>
+              <div
+                key={v.videoId}
+                onClick={() =>
+                  setSelectedMedia({
+                    contentId: v.videoId,
+                    contentType: 'Video',
+                    title: v.title,
+                    caption: v.caption,
+                    mediaUrl: v.blobUrl,
+                    createdAtUtc: v.createdAtUtc,
+                    likeCount: v.likeCount || 0,
+                    commentCount: v.commentCount || 0,
+                  })
+                }
+                style={{
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  height: '180px',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--bg-primary)',
+                  position: 'relative',
+                  border: '1px solid var(--border-color)',
+                }}
+              >
                 <video src={v.blobUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    width: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.65)',
+                    color: 'white',
+                    padding: '6px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {v.title}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      ) : activeTab === 'saved' ? (
+        savedItems.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No saved posts yet.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '14px' }}>
+            {savedItems.map((item) => (
+              <div
+                key={item.savedContentId}
+                onClick={() =>
+                  setSelectedMedia({
+                    contentId: item.contentId,
+                    contentType: item.contentType,
+                    title: item.title,
+                    mediaUrl: item.mediaUrl,
+                  })
+                }
+                style={{
+                  backgroundColor: 'var(--bg-card)',
+                  borderRadius: '14px',
+                  overflow: 'hidden',
+                  border: '1px solid var(--border-color)',
+                  boxShadow: 'var(--shadow-card)',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ height: '150px', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
+                  {item.contentType === 'Photo' ? (
+                    <img src={item.mediaUrl} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <video src={item.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  )}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '8px',
+                      right: '8px',
+                      backgroundColor: 'var(--accent)',
+                      color: 'var(--text-on-accent)',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      fontSize: '0.7rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item.contentType === 'Photo' ? <Image size={11} /> : <Video size={11} />}
+                    {item.contentType}
+                  </span>
+                </div>
+                <div style={{ padding: '10px 12px' }}>
+                  <h4 style={{ margin: 0, fontSize: '0.88rem', color: 'var(--text-primary)', fontWeight: 600 }}>
+                    {item.title}
+                  </h4>
+                </div>
               </div>
             ))}
           </div>
@@ -370,7 +610,6 @@ export const ProfilePage: React.FC = () => {
                   flexDirection: 'column',
                 }}
               >
-                {/* Header with Repost Tag */}
                 <div
                   style={{
                     padding: '8px 12px',
@@ -389,7 +628,6 @@ export const ProfilePage: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Media Preview */}
                 <div style={{ height: '150px', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
                   {s.contentType === 'Photo' ? (
                     <img src={s.mediaUrl} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -398,7 +636,6 @@ export const ProfilePage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Caption / Title */}
                 <div style={{ padding: '10px 12px' }}>
                   <h4 style={{ margin: '0 0 4px 0', fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {s.title}

@@ -61,6 +61,7 @@ export interface FeedItemDto {
   contentType: 'Photo' | 'Video';
   title: string;
   caption?: string;
+  location?: string;
   mediaUrl: string;
   uploadDate: string;
   creatorId: string;
@@ -115,6 +116,8 @@ export interface VideoListItemDto {
   title: string;
   caption?: string;
   blobUrl: string;
+  likeCount?: number;
+  commentCount?: number;
   createdAtUtc: string;
 }
 

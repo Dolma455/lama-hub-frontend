@@ -189,6 +189,13 @@ export const photoService = {
     });
     return res.data;
   },
+  update: async (photoId: string, data: { title: string; caption?: string; location?: string; peoplePresent?: string[] }): Promise<PhotoDetailDto> => {
+    const res = await apiClient.put<PhotoDetailDto>(`/api/photos/${photoId}`, data);
+    return res.data;
+  },
+  delete: async (photoId: string): Promise<void> => {
+    await apiClient.delete(`/api/photos/${photoId}`);
+  },
   getTags: async (photoId: string): Promise<TagDto[]> => {
     const res = await apiClient.get<TagDto[]>(`/api/photos/${photoId}/tags`);
     return res.data;
@@ -215,6 +222,13 @@ export const videoService = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
+  },
+  update: async (videoId: string, data: { title: string; caption?: string }): Promise<VideoDetailDto> => {
+    const res = await apiClient.put<VideoDetailDto>(`/api/videos/${videoId}`, data);
+    return res.data;
+  },
+  delete: async (videoId: string): Promise<void> => {
+    await apiClient.delete(`/api/videos/${videoId}`);
   },
 };
 
