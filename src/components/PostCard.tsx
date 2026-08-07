@@ -1,25 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Tag } from 'lucide-react';
+import { MessageCircle, Tag, Maximize2, Edit3, Trash2 } from 'lucide-react';
 import type { FeedItemDto, TagDto } from '../types/api';
-import { photoService } from '../services/apiServices';
+import { photoService, videoService } from '../services/apiServices';
+import { useAuthStore } from '../store/useAuthStore';
 import { UserAvatar } from './UserAvatar';
 import { LikeButton } from './LikeButton';
 import { SaveButton } from './SaveButton';
 import { ShareButton } from './ShareButton';
 import { TagChip } from './TagChip';
 import { CommentSection } from './CommentSection';
+import { MediaDetailModal } from './MediaDetailModal';
 import { useNavigate } from 'react-router-dom';
 import { formatRelativeTime } from '../utils/dateUtils';
 
 interface PostCardProps {
   item: FeedItemDto;
+  onUpdate?: (contentId: string, title: string, caption?: string) => void;
+  onDelete?: (contentId: string) => void;
 }
 
-export const PostCard: React.FC<PostCardProps> = ({ item }) => {
+export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isOwner = user?.userId === item.creatorId || user?.role === 'Creator';
+
   const [tags, setTags] = useState<TagDto[]>([]);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(item.commentCount);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [title, setTitle] = useState(item.title);
+  const [caption, setCaption] = useState(item.caption);
+  const [deleted, setDeleted] = useState(false);
 
   useEffect(() => {
     if (item.contentType === 'Photo' && item.contentId) {
@@ -29,6 +41,23 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
         .catch(() => {});
     }
   }, [item.contentId, item.contentType]);
+
+  if (deleted) return null;
+
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete this ${item.contentType.toLowerCase()}?`)) return;
+    try {
+      if (item.contentType === 'Photo') {
+        await photoService.delete(item.contentId);
+      } else {
+        await videoService.delete(item.contentId);
+      }
+      setDeleted(true);
+      if (onDelete) onDelete(item.contentId);
+    } catch (err) {
+      console.error('Failed to delete post:', err);
+    }
+  };
 
   return (
     <div
@@ -42,6 +71,34 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
         transition: 'border-color 0.2s ease',
       }}
     >
+      {/* Expanded Modal */}
+      {isModalOpen && (
+        <MediaDetailModal
+          contentId={item.contentId}
+          contentType={item.contentType}
+          title={title}
+          caption={caption}
+          location={item.location}
+          mediaUrl={item.mediaUrl}
+          creatorId={item.creatorId}
+          creatorDisplayName={item.creatorDisplayName}
+          createdAtUtc={item.uploadDate}
+          initialLikeCount={item.likeCount}
+          initialCommentCount={commentCount}
+          initialIsLiked={item.isLikedByCurrentUser}
+          onClose={() => setIsModalOpen(false)}
+          onUpdate={(newTitle, newCap) => {
+            setTitle(newTitle);
+            setCaption(newCap);
+            if (onUpdate) onUpdate(item.contentId, newTitle, newCap);
+          }}
+          onDelete={() => {
+            setDeleted(true);
+            if (onDelete) onDelete(item.contentId);
+          }}
+        />
+      )}
+
       {/* Header */}
       <div
         style={{
@@ -65,22 +122,56 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
             </span>
           </div>
         </div>
+
+        {isOwner && (
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              title="Edit Post"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              <Edit3 size={16} />
+            </button>
+            <button
+              onClick={handleDelete}
+              title="Delete Post"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--danger)',
+                cursor: 'pointer',
+                padding: '4px 8px',
+                borderRadius: '6px',
+              }}
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Title & Caption */}
       <div style={{ padding: '0 18px 12px 18px' }}>
         <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-          {item.title}
+          {title}
         </h3>
-        {item.caption && (
+        {caption && (
           <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-            {item.caption}
+            {caption}
           </p>
         )}
       </div>
 
-      {/* Media Image / Video */}
+      {/* Media Image / Video with Expand Action */}
       <div
+        onClick={() => setIsModalOpen(true)}
         style={{
           backgroundColor: 'var(--bg-primary)',
           minHeight: '220px',
@@ -88,13 +179,33 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
+          cursor: 'pointer',
         }}
       >
+        <div
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            color: 'white',
+            borderRadius: '50%',
+            padding: '6px',
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+          title="Expand View"
+        >
+          <Maximize2 size={16} />
+        </div>
+
         {item.contentType === 'Photo' ? (
           item.mediaUrl ? (
             <img
               src={item.mediaUrl}
-              alt={item.title}
+              alt={title}
               style={{ width: '100%', maxHeight: '550px', objectFit: 'cover' }}
               loading="lazy"
               onError={(e) => {
@@ -124,6 +235,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
           <video
             src={item.mediaUrl}
             controls
+            onClick={(e) => e.stopPropagation()}
             style={{ width: '100%', maxHeight: '550px', objectFit: 'contain' }}
             onError={(e) => {
               const parent = (e.target as HTMLElement).parentElement;
@@ -210,7 +322,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item }) => {
             <MessageCircle size={22} />
             <span>{commentCount}</span>
           </button>
-          <ShareButton contentId={item.contentId} contentType={item.contentType} title={item.title} />
+          <ShareButton contentId={item.contentId} contentType={item.contentType} title={title} />
         </div>
         <SaveButton contentId={item.contentId} contentType={item.contentType} />
       </div>
