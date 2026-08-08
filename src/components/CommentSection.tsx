@@ -101,7 +101,15 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   };
 
   return (
-    <div style={{ marginTop: '16px' }}>
+    <div
+      style={{
+        padding: '16px 18px',
+        borderTop: '1px solid var(--border-color)',
+        backgroundColor: 'var(--bg-secondary)',
+        borderBottomLeftRadius: '16px',
+        borderBottomRightRadius: '16px',
+      }}
+    >
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
         <MessageSquare size={16} color="var(--accent)" />
