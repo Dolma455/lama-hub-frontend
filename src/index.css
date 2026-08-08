@@ -180,16 +180,41 @@ textarea::placeholder {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
+/* Responsive Navigation Breakpoints */
 .mobile-only {
-  display: none;
+  display: none !important;
+}
+
+@media (max-width: 1024px) {
+  .right-sidebar-aside {
+    display: none !important;
+  }
 }
 
 @media (max-width: 768px) {
-  aside {
+  .left-sidebar-nav {
     display: none !important;
   }
 
   .mobile-only {
     display: flex !important;
+  }
+
+  .main-content-area {
+    padding-bottom: 76px !important;
+  }
+
+  .left-watermark {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .left-sidebar-nav {
+    display: flex !important;
+  }
+
+  .mobile-only {
+    display: none !important;
   }
 }
