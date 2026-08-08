@@ -5,6 +5,8 @@ import type { CommentDto } from '../types/api';
 import { SentimentBadge } from './SentimentBadge';
 import { UserAvatar } from './UserAvatar';
 import { useAuthStore } from '../store/useAuthStore';
+import { useProfileNavigation } from '../hooks/useProfileNavigation';
+import { formatRelativeTime } from '../utils/dateUtils';
 
 interface CommentDrawerProps {
   isOpen: boolean;
@@ -29,6 +31,7 @@ export const CommentDrawer: React.FC<CommentDrawerProps> = ({
   const [editText, setEditText] = useState('');
 
   const currentUser = useAuthStore((state) => state.user);
+  const navigateToProfile = useProfileNavigation();
 
   const fetchComments = async () => {
     setLoading(true);
@@ -219,10 +222,15 @@ export const CommentDrawer: React.FC<CommentDrawerProps> = ({
                   gap: '12px',
                 }}
               >
-                <UserAvatar name={comment.userDisplayName} size={36} />
+                <div onClick={() => navigateToProfile(comment.userId)} style={{ cursor: 'pointer', flexShrink: 0 }}>
+                  <UserAvatar src={comment.userProfileImageUrl} name={comment.userDisplayName} size={36} />
+                </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <span
+                      onClick={() => navigateToProfile(comment.userId)}
+                      style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}
+                    >
                       {comment.userDisplayName}
                     </span>
                     <SentimentBadge
@@ -291,7 +299,7 @@ export const CommentDrawer: React.FC<CommentDrawerProps> = ({
 
                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '6px' }}>
                     <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      {new Date(comment.createdAtUtc).toLocaleDateString()}
+                      {formatRelativeTime(comment.createdAtUtc)}
                     </span>
 
                     {(currentUser?.userId === comment.userId || currentUser?.role === 'Admin') &&
