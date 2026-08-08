@@ -166,7 +166,6 @@ export const ThemePicker: React.FC<ThemePickerProps> = ({ isOpen, onClose }) => 
                 key={palette.id}
                 onClick={() => {
                   setPalette(palette.id);
-                  onClose();
                 }}
                 style={{
                   background: 'none',
