@@ -202,3 +202,9 @@ export interface SharedPostDto {
   caption?: string | null;
   sharedAtUtc: string;
 }
+
+export interface RatingSummaryDto {
+  averageScore: number;
+  totalRatings: number;
+  userScore?: number | null;
+}

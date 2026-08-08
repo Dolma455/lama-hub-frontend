@@ -10,6 +10,7 @@ import { SaveButton } from './SaveButton';
 import { ShareButton } from './ShareButton';
 import { CommentSection } from './CommentSection';
 import { TagChip } from './TagChip';
+import { StarRating } from './StarRating';
 import { formatRelativeTime } from '../utils/dateUtils';
 
 interface MediaDetailModalProps {
@@ -423,6 +424,7 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
                 initialLikeCount={initialLikeCount}
               />
               <ShareButton contentId={contentId} contentType={contentType} title={title} />
+              <StarRating contentId={contentId} contentType={contentType} />
             </div>
             <SaveButton contentId={contentId} contentType={contentType} />
           </div>

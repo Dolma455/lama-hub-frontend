@@ -17,6 +17,7 @@ import type {
   PagedResult,
   UserDto,
   SharedPostDto,
+  RatingSummaryDto,
 } from '../types/api';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -377,6 +378,25 @@ export const sharedPostService = {
   },
   getSharedPostsFeed: async (): Promise<SharedPostDto[]> => {
     const res = await apiClient.get<SharedPostDto[]>('/api/photos/shared/feed');
+    return res.data;
+  },
+};
+
+export const ratingService = {
+  getPhotoRating: async (photoId: string): Promise<RatingSummaryDto> => {
+    const res = await apiClient.get<RatingSummaryDto>(`/api/photos/${photoId}/rating`);
+    return res.data;
+  },
+  ratePhoto: async (photoId: string, score: number): Promise<RatingSummaryDto> => {
+    const res = await apiClient.post<RatingSummaryDto>(`/api/photos/${photoId}/rating`, { score });
+    return res.data;
+  },
+  getVideoRating: async (videoId: string): Promise<RatingSummaryDto> => {
+    const res = await apiClient.get<RatingSummaryDto>(`/api/videos/${videoId}/rating`);
+    return res.data;
+  },
+  rateVideo: async (videoId: string, score: number): Promise<RatingSummaryDto> => {
+    const res = await apiClient.post<RatingSummaryDto>(`/api/videos/${videoId}/rating`, { score });
     return res.data;
   },
 };
