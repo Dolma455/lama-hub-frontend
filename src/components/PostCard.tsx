@@ -11,6 +11,7 @@ import { ShareButton } from './ShareButton';
 import { TagChip } from './TagChip';
 import { CommentSection } from './CommentSection';
 import { MediaDetailModal } from './MediaDetailModal';
+import { StarRating } from './StarRating';
 import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { formatRelativeTime } from '../utils/dateUtils';
 
@@ -383,6 +384,7 @@ export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) 
             <span>{commentCount}</span>
           </button>
           <ShareButton contentId={item.contentId} contentType={item.contentType} title={title} />
+          <StarRating contentId={item.contentId} contentType={item.contentType} />
         </div>
         <SaveButton contentId={item.contentId} contentType={item.contentType} />
       </div>
