@@ -252,48 +252,51 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
               )}
             </div>
 
-            {isOwner && (
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border-color)',
-                    color: 'var(--text-primary)',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  <Edit3 size={14} /> Edit
-                </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <StarRating contentId={contentId} contentType={contentType} />
+              {isOwner && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <Edit3 size={14} /> Edit
+                  </button>
 
-                <button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  style={{
-                    backgroundColor: 'var(--danger-muted)',
-                    border: '1px solid var(--danger)',
-                    color: 'var(--danger)',
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
-                >
-                  {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
-                </button>
-              </div>
-            )}
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    style={{
+                      backgroundColor: 'var(--danger-muted)',
+                      border: '1px solid var(--danger)',
+                      color: 'var(--danger)',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />} Delete
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Edit Form or Content View */}
@@ -424,7 +427,6 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
                 initialLikeCount={initialLikeCount}
               />
               <ShareButton contentId={contentId} contentType={contentType} title={title} />
-              <StarRating contentId={contentId} contentType={contentType} />
             </div>
             <SaveButton contentId={contentId} contentType={contentType} />
           </div>

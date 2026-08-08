@@ -184,38 +184,41 @@ export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) 
           )}
         </div>
 
-        {isOwner && (
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              title="Edit Post"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                borderRadius: '6px',
-              }}
-            >
-              <Edit3 size={16} />
-            </button>
-            <button
-              onClick={handleDelete}
-              title="Delete Post"
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--danger)',
-                cursor: 'pointer',
-                padding: '4px 8px',
-                borderRadius: '6px',
-              }}
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <StarRating contentId={item.contentId} contentType={item.contentType} />
+          {isOwner && (
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                title="Edit Post"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                <Edit3 size={16} />
+              </button>
+              <button
+                onClick={handleDelete}
+                title="Delete Post"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--danger)',
+                  cursor: 'pointer',
+                  padding: '4px 8px',
+                  borderRadius: '6px',
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Title & Caption */}
@@ -384,7 +387,6 @@ export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) 
             <span>{commentCount}</span>
           </button>
           <ShareButton contentId={item.contentId} contentType={item.contentType} title={title} />
-          <StarRating contentId={item.contentId} contentType={item.contentType} />
         </div>
         <SaveButton contentId={item.contentId} contentType={item.contentType} />
       </div>
