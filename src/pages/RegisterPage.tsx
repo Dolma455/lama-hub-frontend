@@ -4,6 +4,8 @@ import { Lock, Mail, User as UserIcon, AlertCircle, Eye, EyeOff } from 'lucide-r
 import { authService } from '../services/apiServices';
 import { useAuthStore } from '../store/useAuthStore';
 
+import { getApiErrorMessage } from '../utils/errorUtils';
+
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -31,11 +33,7 @@ export const RegisterPage: React.FC = () => {
       setAuth(authData);
       navigate('/');
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Registration failed. Please check your information.'
-      );
+      setError(getApiErrorMessage(err, 'Registration failed. Please check your information.'));
     } finally {
       setLoading(false);
     }

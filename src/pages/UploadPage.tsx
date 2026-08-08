@@ -5,6 +5,7 @@ import { UserAvatar } from '../components/UserAvatar';
 import type { UserDto } from '../types/api';
 import { UploadCloud, Image, Video, CheckCircle, Loader2, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { getApiErrorMessage } from '../utils/errorUtils';
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
@@ -90,9 +91,10 @@ export const UploadPage: React.FC = () => {
 
       setSuccess(true);
       setTimeout(() => navigate('/'), 1500);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to upload media:', err);
-      setProgressStatus('Upload failed. Please try again.');
+      const errorMessage = getApiErrorMessage(err, 'Upload failed. Please check file format and try again.');
+      setProgressStatus(errorMessage);
     } finally {
       setUploading(false);
     }

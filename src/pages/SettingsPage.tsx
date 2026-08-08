@@ -481,7 +481,7 @@ export const SettingsPage: React.FC = () => {
             fontWeight: 700,
           }}
         >
-          <LogOut size={18} /> Sign Out
+          <LogOut size={18} /> Account Session
         </h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
           Log out of your current session on this device.
