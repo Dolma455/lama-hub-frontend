@@ -4,6 +4,8 @@ import { Lock, Mail, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { authService } from '../services/apiServices';
 import { useAuthStore } from '../store/useAuthStore';
 
+import { getApiErrorMessage } from '../utils/errorUtils';
+
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
@@ -24,11 +26,7 @@ export const LoginPage: React.FC = () => {
       setAuth(authData);
       navigate('/');
     } catch (err: any) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        'Invalid credentials. Please check your email and password.'
-      );
+      setError(getApiErrorMessage(err, 'Invalid credentials. Please check your email and password.'));
     } finally {
       setLoading(false);
     }
