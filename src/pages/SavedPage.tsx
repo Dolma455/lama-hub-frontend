@@ -2,21 +2,45 @@ import React, { useEffect, useState } from 'react';
 import { savedService } from '../services/apiServices';
 import type { SavedContentDto } from '../types/api';
 import { Bookmark, Image, Video } from 'lucide-react';
+import { MediaDetailModal } from '../components/MediaDetailModal';
 
 export const SavedPage: React.FC = () => {
   const [items, setItems] = useState<SavedContentDto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMedia, setSelectedMedia] = useState<SavedContentDto | null>(null);
+
+  const fetchSavedItems = async () => {
+    setLoading(true);
+    try {
+      const res = await savedService.getSavedContent();
+      setItems(res.items);
+    } catch (err) {
+      console.error('Failed to load saved items:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    savedService
-      .getSavedContent()
-      .then((res) => setItems(res.items))
-      .catch((err) => console.error('Failed to load saved items:', err))
-      .finally(() => setLoading(false));
+    fetchSavedItems();
   }, []);
 
   return (
     <div>
+      {/* Media Detail Lightbox Modal */}
+      {selectedMedia && (
+        <MediaDetailModal
+          contentId={selectedMedia.contentId}
+          contentType={selectedMedia.contentType}
+          title={selectedMedia.title}
+          caption={selectedMedia.caption}
+          mediaUrl={selectedMedia.mediaUrl}
+          onClose={() => setSelectedMedia(null)}
+          onUpdate={fetchSavedItems}
+          onDelete={fetchSavedItems}
+        />
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
         <Bookmark size={22} color="var(--accent)" />
         <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -43,12 +67,15 @@ export const SavedPage: React.FC = () => {
           {items.map((item) => (
             <div
               key={item.savedContentId}
+              onClick={() => setSelectedMedia(item)}
               style={{
                 backgroundColor: 'var(--bg-card)',
                 borderRadius: '14px',
                 overflow: 'hidden',
                 border: '1px solid var(--border-color)',
                 boxShadow: 'var(--shadow-card)',
+                cursor: 'pointer',
+                transition: 'transform 0.15s ease, border-color 0.15s ease',
               }}
             >
               <div style={{ height: '160px', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
