@@ -66,7 +66,10 @@ export const StarRating: React.FC<StarRatingProps> = ({
     }
   };
 
-  const displayScore = hoverScore ?? ratingSummary.userScore ?? ratingSummary.averageScore;
+  const averageScore = ratingSummary?.averageScore ?? 0;
+  const totalRatings = ratingSummary?.totalRatings ?? 0;
+  const userScore = ratingSummary?.userScore ?? null;
+  const displayScore = hoverScore ?? userScore ?? averageScore;
 
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', userSelect: 'none' }}>
@@ -114,12 +117,12 @@ export const StarRating: React.FC<StarRatingProps> = ({
           marginLeft: '2px',
         }}
       >
-        {ratingSummary.averageScore > 0 ? ratingSummary.averageScore.toFixed(1) : 'New'}
+        {averageScore > 0 ? averageScore.toFixed(1) : 'New'}
       </span>
 
       {showCount && (
         <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-          ({ratingSummary.totalRatings})
+          ({totalRatings})
         </span>
       )}
     </div>
