@@ -54,6 +54,7 @@ export interface PublicCreatorProfileDto {
   videoCount: number;
   totalLikesReceived: number;
   isFollowed: boolean;
+  isFollowingCurrentUser?: boolean;
 }
 
 export interface FeedItemDto {
@@ -70,6 +71,10 @@ export interface FeedItemDto {
   likeCount: number;
   commentCount: number;
   isLikedByCurrentUser: boolean;
+  sharedByUserDisplayName?: string | null;
+  sharedByUserId?: string | null;
+  repostCaption?: string | null;
+  sharedAtUtc?: string | null;
 }
 
 export interface PhotoDetailDto {
@@ -127,6 +132,7 @@ export interface CommentDto {
   videoId?: string;
   userId: string;
   userDisplayName: string;
+  userProfileImageUrl?: string | null;
   commentText: string;
   sentiment?: 'Positive' | 'Neutral' | 'Negative' | 'Mixed' | null;
   positiveScore?: number | null;
@@ -149,6 +155,7 @@ export interface CreatorRecommendationDto {
   profileImage?: string;
   followerCount: number;
   reasonForRecommendation: string;
+  category?: string;
 }
 
 export interface NotificationDto {
@@ -156,6 +163,7 @@ export interface NotificationDto {
   userId: string;
   actorId: string;
   actorDisplayName: string;
+  actorProfileImageUrl?: string | null;
   type: string;
   targetId?: string;
   message: string;

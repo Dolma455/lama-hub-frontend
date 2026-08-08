@@ -369,7 +369,7 @@ export const PALETTES: PaletteDef[] = [
   ),
 ];
 
-export const DEFAULT_PALETTE_ID = 'dark';
+export const DEFAULT_PALETTE_ID = 'yellow-light';
 
 export function getPalette(id: string): PaletteDef {
   return PALETTES.find((p) => p.id === id) ?? PALETTES[0];

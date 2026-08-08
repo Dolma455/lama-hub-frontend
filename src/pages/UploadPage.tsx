@@ -1,20 +1,50 @@
-import React, { useState } from 'react';
-import { photoService, videoService } from '../services/apiServices';
-import { UploadCloud, Image, Video, CheckCircle, Loader2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { photoService, videoService, userService } from '../services/apiServices';
+import { useAuthStore } from '../store/useAuthStore';
+import { UserAvatar } from '../components/UserAvatar';
+import type { UserDto } from '../types/api';
+import { UploadCloud, Image, Video, CheckCircle, Loader2, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const UploadPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [contentType, setContentType] = useState<'Photo' | 'Video'>('Photo');
   const [title, setTitle] = useState('');
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
   const [people, setPeople] = useState('');
+  const [followingFriends, setFollowingFriends] = useState<UserDto[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progressStatus, setProgressStatus] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user?.userId) {
+      userService
+        .getFollowing(user.userId, 1, 50)
+        .then((res) => setFollowingFriends(res.items))
+        .catch(() => setFollowingFriends([]));
+    }
+  }, [user?.userId]);
+
+  const toggleTagFriend = (displayName: string) => {
+    const currentList = people
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    let updated: string[];
+    if (currentList.some((p) => p.toLowerCase() === displayName.toLowerCase())) {
+      updated = currentList.filter((p) => p.toLowerCase() !== displayName.toLowerCase());
+    } else {
+      updated = [...currentList, displayName];
+    }
+    setPeople(updated.join(', '));
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -196,11 +226,11 @@ export const UploadPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={labelStyle}>Title</label>
+            <label style={labelStyle}>Title (Write title)</label>
             <input
               type="text"
               required
-              placeholder="Sunset at Malibu Beach"
+              placeholder="Write title..."
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               style={inputStyle}
@@ -221,24 +251,136 @@ export const UploadPage: React.FC = () => {
           {contentType === 'Photo' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <label style={labelStyle}>Location (Optional)</label>
+                <label style={labelStyle}>Location (Manchester, UK)</label>
                 <input
                   type="text"
-                  placeholder="California, USA"
+                  placeholder="Manchester, UK"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   style={inputStyle}
                 />
               </div>
-              <div>
-                <label style={labelStyle}>People Present (comma-separated)</label>
+
+              {/* Tag / Mention Friends with Attached Dropdown & Selected Chips */}
+              <div style={{ position: 'relative' }}>
+                <label style={labelStyle}>Tag / Mention Friends (comma-separated)</label>
                 <input
                   type="text"
-                  placeholder="Sarah, John"
+                  placeholder="Click or type to tag friends..."
                   value={people}
+                  onFocus={() => setIsDropdownOpen(true)}
                   onChange={(e) => setPeople(e.target.value)}
                   style={inputStyle}
                 />
+
+                {/* Attached Dropdown Menu directly below input */}
+                {isDropdownOpen && followingFriends.length > 0 && (
+                  <>
+                    <div
+                      onClick={() => setIsDropdownOpen(false)}
+                      style={{ position: 'fixed', inset: 0, zIndex: 90 }}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        right: 0,
+                        marginTop: '4px',
+                        backgroundColor: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '14px',
+                        maxHeight: '200px',
+                        overflowY: 'auto',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.3)',
+                        zIndex: 100,
+                        padding: '6px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: '6px 10px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          color: 'var(--text-muted)',
+                          letterSpacing: '0.5px',
+                        }}
+                      >
+                        FRIENDS YOU FOLLOW
+                      </div>
+                      {followingFriends.map((friend) => {
+                        const isSelected = people
+                          .split(',')
+                          .map((p) => p.trim().toLowerCase())
+                          .includes(friend.displayName.toLowerCase());
+
+                        return (
+                          <div
+                            key={friend.userId}
+                            onClick={() => toggleTagFriend(friend.displayName)}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '8px 12px',
+                              borderRadius: '10px',
+                              backgroundColor: isSelected ? 'var(--accent-muted)' : 'transparent',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.15s ease',
+                            }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <UserAvatar src={friend.profileImageUrl} name={friend.displayName} size={26} />
+                              <div>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                  {friend.displayName}
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--accent)', fontWeight: 600 }}>
+                                  {friend.role}
+                                </div>
+                              </div>
+                            </div>
+                            {isSelected && <Check size={16} color="var(--accent)" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
+                {/* Tagged Friend Chips directly below input */}
+                {people.trim() && (
+                  <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {people
+                      .split(',')
+                      .map((p) => p.trim())
+                      .filter(Boolean)
+                      .map((name) => (
+                        <span
+                          key={name}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            backgroundColor: 'var(--accent-muted)',
+                            border: '1px solid var(--accent-muted-border)',
+                            color: 'var(--accent)',
+                            padding: '4px 10px',
+                            borderRadius: '16px',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                          }}
+                        >
+                          @{name}
+                          <X
+                            size={12}
+                            onClick={() => toggleTagFriend(name)}
+                            style={{ cursor: 'pointer', marginLeft: '2px' }}
+                          />
+                        </span>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
