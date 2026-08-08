@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Edit3, Trash2, Tag as TagIcon, MapPin, Loader2 } from 'lucide-react';
-import { photoService, videoService } from '../services/apiServices';
+import { photoService, videoService, userService } from '../services/apiServices';
 import type { TagDto } from '../types/api';
 import { useAuthStore } from '../store/useAuthStore';
+import { useProfileNavigation } from '../hooks/useProfileNavigation';
+import { FollowButton } from './FollowButton';
 import { LikeButton } from './LikeButton';
 import { SaveButton } from './SaveButton';
 import { ShareButton } from './ShareButton';
@@ -46,13 +48,15 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
   onDelete,
 }) => {
   const { user } = useAuthStore();
-  const isOwner = user?.userId === creatorId || user?.role === 'Creator';
+  const navigateToProfile = useProfileNavigation();
+  const isOwner = user?.userId === creatorId;
 
   const [title, setTitle] = useState(initialTitle);
   const [caption, setCaption] = useState(initialCaption || '');
   const [location] = useState(initialLocation || '');
   const [tags, setTags] = useState<TagDto[]>([]);
   const [, setCommentCount] = useState(initialCommentCount);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   // Edit State
   const [isEditing, setIsEditing] = useState(false);
@@ -70,7 +74,14 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
         .then(setTags)
         .catch(() => {});
     }
-  }, [contentId, contentType]);
+
+    if (user?.userId && creatorId && creatorId !== user.userId) {
+      userService
+        .getFollowStatus(creatorId)
+        .then((res) => setIsFollowing(res.isFollowing))
+        .catch(() => {});
+    }
+  }, [contentId, contentType, creatorId, user?.userId]);
 
   const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,14 +231,23 @@ export const MediaDetailModal: React.FC<MediaDetailModalProps> = ({
         >
           {/* Header Actions */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-            <div>
-              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                {creatorDisplayName || 'Creator'}
-              </h4>
-              {createdAtUtc && (
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {formatRelativeTime(createdAtUtc)}
-                </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                onClick={() => navigateToProfile(creatorId)}
+                style={{ cursor: 'pointer' }}
+              >
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {creatorDisplayName || 'Creator'}
+                </h4>
+                {createdAtUtc && (
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {formatRelativeTime(createdAtUtc)}
+                  </span>
+                )}
+              </div>
+
+              {!isOwner && user?.userId && creatorId && (
+                <FollowButton userId={creatorId} initialIsFollowing={isFollowing} size="sm" />
               )}
             </div>
 

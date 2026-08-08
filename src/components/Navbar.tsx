@@ -1,22 +1,22 @@
-import React, { useState } from 'react';
-import { Search, Bell, Palette } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Palette } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { UserAvatar } from './UserAvatar';
 import { ThemePicker } from './ThemePicker';
 
 export const Navbar: React.FC = () => {
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
   const user = useAuthStore((state) => state.user);
+  const { unreadCount, fetchNotifications } = useNotificationStore();
   const [isThemePickerOpen, setIsThemePickerOpen] = useState(false);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  useEffect(() => {
+    if (user?.userId) {
+      fetchNotifications();
     }
-  };
+  }, [user?.userId]);
 
   return (
     <header
@@ -74,42 +74,23 @@ export const Navbar: React.FC = () => {
         </span>
       </div>
 
-      {/* Search Input */}
-      <form
-        onSubmit={handleSearchSubmit}
+      {/* Greeting Header */}
+      <div
         style={{
-          maxWidth: '360px',
-          width: '100%',
-          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          fontSize: '1.05rem',
+          fontWeight: 700,
+          color: 'var(--text-primary)',
         }}
       >
-        <Search
-          size={16}
-          style={{
-            position: 'absolute',
-            left: '14px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            color: 'var(--text-muted)',
-          }}
-        />
-        <input
-          type="text"
-          placeholder="Search creators, photos..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{
-            width: '100%',
-            backgroundColor: 'var(--bg-input)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            padding: '8px 16px 8px 38px',
-            color: 'var(--text-primary)',
-            fontSize: '0.85rem',
-            outline: 'none',
-          }}
-        />
-      </form>
+        <span>Hello,</span>
+        <span style={{ color: 'var(--accent)', fontWeight: 800 }}>
+          {user?.displayName || 'User'}
+        </span>
+        <span>👋</span>
+      </div>
 
       {/* Right User Actions */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -132,6 +113,7 @@ export const Navbar: React.FC = () => {
 
         <button
           onClick={() => navigate('/notifications')}
+          title="Notifications"
           style={{
             background: 'none',
             border: 'none',
@@ -140,9 +122,34 @@ export const Navbar: React.FC = () => {
             padding: '6px',
             display: 'flex',
             alignItems: 'center',
+            position: 'relative',
           }}
         >
           <Bell size={20} />
+          {unreadCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '2px',
+                right: '2px',
+                backgroundColor: 'var(--danger)',
+                color: 'white',
+                fontSize: '0.65rem',
+                fontWeight: 800,
+                borderRadius: '10px',
+                minWidth: '16px',
+                height: '16px',
+                padding: '0 4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 0 2px var(--bg-sidebar)',
+                lineHeight: 1,
+              }}
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
         </button>
 
         {user && (

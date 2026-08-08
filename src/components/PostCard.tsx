@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { MessageCircle, Tag, Maximize2, Edit3, Trash2 } from 'lucide-react';
+import { MessageCircle, Tag, Maximize2, Edit3, Trash2, Repeat2 } from 'lucide-react';
 import type { FeedItemDto, TagDto } from '../types/api';
-import { photoService, videoService } from '../services/apiServices';
+import { photoService, videoService, userService } from '../services/apiServices';
 import { useAuthStore } from '../store/useAuthStore';
 import { UserAvatar } from './UserAvatar';
+import { FollowButton } from './FollowButton';
 import { LikeButton } from './LikeButton';
 import { SaveButton } from './SaveButton';
 import { ShareButton } from './ShareButton';
 import { TagChip } from './TagChip';
 import { CommentSection } from './CommentSection';
 import { MediaDetailModal } from './MediaDetailModal';
-import { useNavigate } from 'react-router-dom';
+import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { formatRelativeTime } from '../utils/dateUtils';
 
 interface PostCardProps {
@@ -20,14 +21,15 @@ interface PostCardProps {
 }
 
 export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) => {
-  const navigate = useNavigate();
+  const navigateToProfile = useProfileNavigation();
   const { user } = useAuthStore();
-  const isOwner = user?.userId === item.creatorId || user?.role === 'Creator';
+  const isOwner = user?.userId === item.creatorId;
 
   const [tags, setTags] = useState<TagDto[]>([]);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const [commentCount, setCommentCount] = useState(item.commentCount);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const [title, setTitle] = useState(item.title);
   const [caption, setCaption] = useState(item.caption);
@@ -40,7 +42,14 @@ export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) 
         .then(setTags)
         .catch(() => {});
     }
-  }, [item.contentId, item.contentType]);
+
+    if (user?.userId && item.creatorId && item.creatorId !== user.userId) {
+      userService
+        .getFollowStatus(item.creatorId)
+        .then((res) => setIsFollowing(res.isFollowing))
+        .catch(() => {});
+    }
+  }, [item.contentId, item.contentType, item.creatorId, user?.userId]);
 
   if (deleted) return null;
 
@@ -71,6 +80,47 @@ export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) 
         transition: 'border-color 0.2s ease',
       }}
     >
+      {/* Repost Header Banner */}
+      {item.sharedByUserDisplayName && (
+        <div
+          onClick={() => navigateToProfile(item.sharedByUserId)}
+          style={{
+            padding: '8px 18px',
+            backgroundColor: 'var(--accent-muted)',
+            borderBottom: '1px solid var(--accent-muted-border)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            color: 'var(--accent)',
+            cursor: 'pointer',
+          }}
+        >
+          <Repeat2 size={16} />
+          <span>
+            {item.sharedByUserDisplayName} reposted {item.sharedAtUtc ? `• ${formatRelativeTime(item.sharedAtUtc)}` : ''}
+          </span>
+        </div>
+      )}
+
+      {/* Repost Caption Quote Box */}
+      {item.repostCaption && (
+        <div
+          style={{
+            margin: '12px 18px 0 18px',
+            padding: '10px 14px',
+            backgroundColor: 'var(--bg-primary)',
+            borderRadius: '12px',
+            borderLeft: '4px solid var(--accent)',
+            fontSize: '0.88rem',
+            color: 'var(--text-primary)',
+            fontWeight: 500,
+          }}
+        >
+          "{item.repostCaption}"
+        </div>
+      )}
       {/* Expanded Modal */}
       {isModalOpen && (
         <MediaDetailModal
@@ -108,19 +158,29 @@ export const PostCard: React.FC<PostCardProps> = ({ item, onUpdate, onDelete }) 
           justifyContent: 'space-between',
         }}
       >
-        <div
-          onClick={() => navigate(`/creator/${item.creatorId}`)}
-          style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-        >
-          <UserAvatar src={item.creatorProfileImageUrl} name={item.creatorDisplayName} size={42} />
-          <div>
-            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {item.creatorDisplayName}
-            </h4>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              {formatRelativeTime(item.uploadDate)}
-            </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div
+            onClick={() => navigateToProfile(item.creatorId)}
+            style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+          >
+            <UserAvatar src={item.creatorProfileImageUrl} name={item.creatorDisplayName} size={42} />
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                {item.creatorDisplayName}
+              </h4>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {formatRelativeTime(item.uploadDate)}
+              </span>
+            </div>
           </div>
+
+          {!isOwner && user?.userId && item.creatorId && (
+            <FollowButton
+              userId={item.creatorId}
+              initialIsFollowing={isFollowing}
+              size="sm"
+            />
+          )}
         </div>
 
         {isOwner && (
