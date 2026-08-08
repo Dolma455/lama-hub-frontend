@@ -41,7 +41,7 @@ export const CreatorProfilePage: React.FC = () => {
           boxShadow: 'var(--shadow-card)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <UserAvatar src={profile.profileImageUrl} name={profile.displayName} size={72} />
             <div>
@@ -63,7 +63,11 @@ export const CreatorProfilePage: React.FC = () => {
               </span>
             </div>
           </div>
-          <FollowButton userId={profile.creatorId} initialIsFollowing={profile.isFollowed} />
+          <FollowButton
+            userId={profile.creatorId}
+            initialIsFollowing={profile.isFollowed}
+            initialIsFollowedBy={profile.isFollowingCurrentUser}
+          />
         </div>
 
         {profile.bio && (

@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Navbar } from '../components/Navbar';
 import { Sidebar } from '../components/Sidebar';
 import { RightSidebar } from '../components/RightSidebar';
+import { BottomNav } from '../components/BottomNav';
 import { authService } from '../services/apiServices';
 import { useAuthStore } from '../store/useAuthStore';
 
@@ -72,11 +73,12 @@ export const MainLayout: React.FC = () => {
       >
         <Sidebar />
         <main
+          className="main-content-area"
           style={{
             flex: 1,
             maxWidth: '640px',
             minHeight: 'calc(100vh - 61px)',
-            padding: '24px 16px 40px 16px',
+            padding: '24px 16px 72px 16px',
             width: '100%',
           }}
         >
@@ -84,6 +86,8 @@ export const MainLayout: React.FC = () => {
         </main>
         <RightSidebar />
       </div>
+
+      <BottomNav />
     </div>
   );
 };
