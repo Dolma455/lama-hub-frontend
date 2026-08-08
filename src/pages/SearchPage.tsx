@@ -5,9 +5,11 @@ import type { UserDto, PhotoListItemDto, VideoListItemDto } from '../types/api';
 import { UserAvatar } from '../components/UserAvatar';
 import { FollowButton } from '../components/FollowButton';
 import { TagChip } from '../components/TagChip';
+import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { Search, X } from 'lucide-react';
 
 export const SearchPage: React.FC = () => {
+  const navigateToProfile = useProfileNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
   const initialTag = searchParams.get('tag') || '';
@@ -175,8 +177,11 @@ export const SearchPage: React.FC = () => {
                   boxShadow: 'var(--shadow-card)',
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <UserAvatar name={c.displayName} size={40} />
+                <div
+                  onClick={() => navigateToProfile(c.userId)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                >
+                  <UserAvatar src={c.profileImageUrl} name={c.displayName} size={40} />
                   <div>
                     <h4 style={{ margin: 0, fontSize: '0.92rem', color: 'var(--text-primary)', fontWeight: 700 }}>
                       {c.displayName}

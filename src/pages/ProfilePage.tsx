@@ -6,7 +6,6 @@ import { UserAvatar } from '../components/UserAvatar';
 import { PostCard } from '../components/PostCard';
 import { MediaDetailModal } from '../components/MediaDetailModal';
 import { Image, Video, Camera, Trash2, Loader2, X, Repeat2, Bookmark, Rss } from 'lucide-react';
-import { formatRelativeTime } from '../utils/dateUtils';
 
 export const ProfilePage: React.FC = () => {
   const { user } = useAuthStore();
@@ -74,7 +73,27 @@ export const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     fetchProfileData();
+    if (user?.role === 'Consumer' && activeTab === 'feed') {
+      setActiveTab('reposts');
+    }
   }, [user?.userId, user?.role]);
+
+  const sharedPostFeedItems: FeedItemDto[] = sharedPosts.map((s) => ({
+    contentId: s.contentId,
+    contentType: s.contentType as 'Photo' | 'Video',
+    creatorId: s.sharedByUserId,
+    creatorDisplayName: s.sharedByUserDisplayName,
+    title: s.title,
+    mediaUrl: s.mediaUrl,
+    uploadDate: s.sharedAtUtc,
+    likeCount: 0,
+    commentCount: 0,
+    isLikedByCurrentUser: false,
+    sharedByUserDisplayName: s.sharedByUserDisplayName,
+    sharedByUserId: s.sharedByUserId,
+    repostCaption: s.caption,
+    sharedAtUtc: s.sharedAtUtc,
+  }));
 
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || !e.target.files[0]) return;
@@ -392,9 +411,11 @@ export const ProfilePage: React.FC = () => {
 
       {/* Profile Tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        <button onClick={() => setActiveTab('feed')} style={tabStyle(activeTab === 'feed')}>
-          <Rss size={18} /> My Feed ({myFeedItems.length})
-        </button>
+        {isCreator && (
+          <button onClick={() => setActiveTab('feed')} style={tabStyle(activeTab === 'feed')}>
+            <Rss size={18} /> My Feed ({myFeedItems.length})
+          </button>
+        )}
         <button onClick={() => setActiveTab('photos')} style={tabStyle(activeTab === 'photos')}>
           <Image size={18} /> Photos ({photos.length})
         </button>
@@ -594,59 +615,17 @@ export const ProfilePage: React.FC = () => {
         )
       ) : (
         /* Reposts Tab Content */
-        sharedPosts.length === 0 ? (
+        sharedPostFeedItems.length === 0 ? (
           <p style={{ color: 'var(--text-muted)', textAlign: 'center', margin: '40px 0' }}>No reposts yet.</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }}>
-            {sharedPosts.map((s) => (
-              <div
-                key={s.sharedPostId}
-                style={{
-                  backgroundColor: 'var(--bg-card)',
-                  borderRadius: '14px',
-                  border: '1px solid var(--border-color)',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div
-                  style={{
-                    padding: '8px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    backgroundColor: 'var(--accent-muted)',
-                    borderBottom: '1px solid var(--accent-muted-border)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Repeat2 size={13} /> Reposted
-                  </span>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    {formatRelativeTime(s.sharedAtUtc)}
-                  </span>
-                </div>
-
-                <div style={{ height: '150px', backgroundColor: 'var(--bg-primary)', position: 'relative' }}>
-                  {s.contentType === 'Photo' ? (
-                    <img src={s.mediaUrl} alt={s.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <video src={s.mediaUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                </div>
-
-                <div style={{ padding: '10px 12px' }}>
-                  <h4 style={{ margin: '0 0 4px 0', fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {s.title}
-                  </h4>
-                  {s.caption && (
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', lineHeight: '1.3' }}>
-                      "{s.caption}"
-                    </p>
-                  )}
-                </div>
-              </div>
+          <div>
+            {sharedPostFeedItems.map((item) => (
+              <PostCard
+                key={`${item.contentType}-${item.contentId}-${item.sharedAtUtc}`}
+                item={item}
+                onUpdate={() => fetchProfileData()}
+                onDelete={() => fetchProfileData()}
+              />
             ))}
           </div>
         )

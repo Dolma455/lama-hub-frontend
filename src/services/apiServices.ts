@@ -154,8 +154,8 @@ export const userService = {
     const res = await apiClient.post(`/api/users/${userId}/unfollow`);
     return res.data;
   },
-  getFollowStatus: async (userId: string): Promise<{ isFollowing: boolean }> => {
-    const res = await apiClient.get<{ isFollowing: boolean }>(`/api/users/${userId}/follow-status`);
+  getFollowStatus: async (userId: string): Promise<{ isFollowing: boolean; isFollowedBy: boolean }> => {
+    const res = await apiClient.get<{ isFollowing: boolean; isFollowedBy: boolean }>(`/api/users/${userId}/follow-status`);
     return res.data;
   },
   getFollowers: async (userId: string, page = 1, pageSize = 10): Promise<PagedResult<UserDto>> => {
@@ -283,9 +283,17 @@ export const feedService = {
     const res = await apiClient.get<PagedResult<FeedItemDto>>(`/api/feed?page=${page}&pageSize=${pageSize}`);
     return res.data;
   },
+  getFollowingFeed: async (page = 1, pageSize = 10): Promise<PagedResult<FeedItemDto>> => {
+    const res = await apiClient.get<PagedResult<FeedItemDto>>(`/api/feed/following?page=${page}&pageSize=${pageSize}`);
+    return res.data;
+  },
 };
 
 export const searchService = {
+  searchUsers: async (query: string, page = 1, pageSize = 10): Promise<PagedResult<UserDto>> => {
+    const res = await apiClient.get<PagedResult<UserDto>>(`/api/search/users?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`);
+    return res.data;
+  },
   searchCreators: async (query: string, page = 1, pageSize = 10): Promise<PagedResult<UserDto>> => {
     const res = await apiClient.get<PagedResult<UserDto>>(`/api/search/creators?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`);
     return res.data;

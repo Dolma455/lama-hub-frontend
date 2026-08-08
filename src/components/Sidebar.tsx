@@ -13,11 +13,13 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuthStore } from '../store/useAuthStore';
+import { useNotificationStore } from '../store/useNotificationStore';
 import { UserAvatar } from './UserAvatar';
 
 export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
+  const { unreadCount } = useNotificationStore();
 
   const handleLogout = () => {
     logout();
@@ -32,7 +34,39 @@ export const Sidebar: React.FC = () => {
       ? [{ label: 'Upload Post', path: '/upload', icon: <PlusSquare size={20} /> }]
       : []),
     { label: 'Saved Posts', path: '/saved', icon: <Bookmark size={20} /> },
-    { label: 'Notifications', path: '/notifications', icon: <Bell size={20} /> },
+    {
+      label: 'Notifications',
+      path: '/notifications',
+      icon: (
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-6px',
+                backgroundColor: 'var(--danger)',
+                color: 'white',
+                fontSize: '0.62rem',
+                fontWeight: 800,
+                borderRadius: '10px',
+                minWidth: '15px',
+                height: '15px',
+                padding: '0 3px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 0 0 2px var(--bg-sidebar)',
+                lineHeight: 1,
+              }}
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </div>
+      ),
+    },
     { label: 'Following', path: '/following', icon: <Users size={20} /> },
     { label: 'My Profile', path: '/profile', icon: <User size={20} /> },
     { label: 'Settings', path: '/settings', icon: <Settings size={20} /> },
@@ -40,6 +74,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
+      className="left-sidebar-nav"
       style={{
         width: '240px',
         backgroundColor: 'var(--bg-sidebar)',

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Send, Trash2, Edit2 } from 'lucide-react';
+import { Send, Trash2, Edit2, MessageSquare } from 'lucide-react';
 import { commentService } from '../services/apiServices';
 import type { CommentDto } from '../types/api';
 import { SentimentBadge } from './SentimentBadge';
 import { UserAvatar } from './UserAvatar';
 import { useAuthStore } from '../store/useAuthStore';
+import { useProfileNavigation } from '../hooks/useProfileNavigation';
 import { formatRelativeTime } from '../utils/dateUtils';
 
 interface CommentSectionProps {
@@ -20,6 +21,7 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   contentType,
   onCommentAdded,
 }) => {
+  const navigateToProfile = useProfileNavigation();
   const [comments, setComments] = useState<CommentDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [text, setText] = useState('');
@@ -80,7 +82,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
     if (!editText.trim()) return;
     try {
       const updated = await commentService.updateComment(commentId, editText.trim());
-      setComments((prev) => prev.map((c) => (c.commentId === commentId ? updated : c)));
+      if (updated) {
+        setComments((prev) => prev.map((c) => (c.commentId === commentId ? updated : c)));
+      }
       setEditingId(null);
     } catch (err) {
       console.error('Failed to update comment:', err);
@@ -97,65 +101,69 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
   };
 
   return (
-    <div
-      style={{
-        borderTop: '1px solid var(--border-subtle)',
-        backgroundColor: 'var(--bg-primary)',
-        padding: '16px 18px',
-      }}
-    >
+    <div style={{ marginTop: '16px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+        <MessageSquare size={16} color="var(--accent)" />
+        <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+          Comments ({comments.length})
+        </span>
+      </div>
+
       {/* Input box at top of comment section */}
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          display: 'flex',
-          gap: '10px',
-          alignItems: 'center',
-          marginBottom: comments.length > 0 ? '16px' : '4px',
-        }}
-      >
-        <UserAvatar src={currentUser?.profileImageUrl} name={currentUser?.displayName || 'User'} size={34} />
-        <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <input
-            type="text"
-            placeholder="Write a comment..."
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            style={{
-              width: '100%',
-              backgroundColor: 'var(--bg-input)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '20px',
-              padding: '10px 42px 10px 16px',
-              color: 'var(--text-primary)',
-              fontSize: '0.88rem',
-              outline: 'none',
-              fontFamily: 'inherit',
-            }}
-          />
-          <button
-            type="submit"
-            disabled={!text.trim() || submitting}
-            style={{
-              position: 'absolute',
-              right: '6px',
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              backgroundColor: text.trim() ? 'var(--accent)' : 'transparent',
-              color: text.trim() ? 'var(--text-on-accent)' : 'var(--text-muted)',
-              border: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: text.trim() ? 'pointer' : 'default',
-              transition: 'all 0.2s ease',
-            }}
-          >
-            <Send size={15} />
-          </button>
-        </div>
-      </form>
+      {currentUser && (
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            display: 'flex',
+            gap: '10px',
+            alignItems: 'center',
+            marginBottom: comments.length > 0 ? '16px' : '4px',
+          }}
+        >
+          <UserAvatar src={currentUser?.profileImageUrl} name={currentUser?.displayName || 'User'} size={34} />
+          <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="Write a comment..."
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              style={{
+                width: '100%',
+                backgroundColor: 'var(--bg-input)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '20px',
+                padding: '10px 42px 10px 16px',
+                color: 'var(--text-primary)',
+                fontSize: '0.88rem',
+                outline: 'none',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              type="submit"
+              disabled={!text.trim() || submitting}
+              style={{
+                position: 'absolute',
+                right: '6px',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: text.trim() ? 'var(--accent)' : 'transparent',
+                color: text.trim() ? 'var(--text-on-accent)' : 'var(--text-muted)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: text.trim() ? 'pointer' : 'default',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <Send size={15} />
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* List of comments */}
       {loading ? (
@@ -170,7 +178,9 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           {comments.map((comment) => (
             <div key={comment.commentId} style={{ display: 'flex', gap: '10px' }}>
-              <UserAvatar name={comment.userDisplayName} size={32} />
+              <div onClick={() => navigateToProfile(comment.userId)} style={{ cursor: 'pointer', flexShrink: 0 }}>
+                <UserAvatar src={comment.userProfileImageUrl} name={comment.userDisplayName} size={32} />
+              </div>
               <div style={{ flex: 1 }}>
                 <div
                   style={{
@@ -183,7 +193,10 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '2px' }}>
-                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    <span
+                      onClick={() => navigateToProfile(comment.userId)}
+                      style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', cursor: 'pointer' }}
+                    >
                       {comment.userDisplayName}
                     </span>
                     <SentimentBadge
@@ -203,12 +216,11 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                         style={{
                           flex: 1,
                           backgroundColor: 'var(--bg-input)',
-                          border: '1px solid var(--accent)',
+                          border: '1px solid var(--border-color)',
                           borderRadius: '8px',
                           padding: '4px 8px',
+                          fontSize: '0.82rem',
                           color: 'var(--text-primary)',
-                          fontSize: '0.85rem',
-                          fontFamily: 'inherit',
                           outline: 'none',
                         }}
                       />
@@ -218,34 +230,18 @@ export const CommentSection: React.FC<CommentSectionProps> = ({
                           backgroundColor: 'var(--accent)',
                           color: 'var(--text-on-accent)',
                           border: 'none',
-                          borderRadius: '6px',
+                          borderRadius: '8px',
                           padding: '4px 10px',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
+                          fontSize: '0.78rem',
                           fontWeight: 600,
+                          cursor: 'pointer',
                         }}
                       >
                         Save
                       </button>
-                      <button
-                        onClick={() => setEditingId(null)}
-                        style={{
-                          backgroundColor: 'var(--bg-input)',
-                          color: 'var(--text-secondary)',
-                          border: '1px solid var(--border-color)',
-                          borderRadius: '6px',
-                          padding: '4px 10px',
-                          fontSize: '0.75rem',
-                          cursor: 'pointer',
-                          fontFamily: 'inherit',
-                        }}
-                      >
-                        Cancel
-                      </button>
                     </div>
                   ) : (
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: '1.4' }}>
                       {comment.commentText}
                     </p>
                   )}

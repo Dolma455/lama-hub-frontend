@@ -20,6 +20,7 @@ export const RightSidebar: React.FC = () => {
 
   return (
     <aside
+      className="right-sidebar-aside"
       style={{
         width: '320px',
         padding: '24px 16px',
