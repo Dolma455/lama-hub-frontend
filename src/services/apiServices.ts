@@ -178,6 +178,10 @@ export const photoService = {
     const res = await apiClient.get<PhotoListItemDto[]>('/api/photos/mine');
     return res.data;
   },
+  getByUser: async (userId: string): Promise<PhotoListItemDto[]> => {
+    const res = await apiClient.get<PhotoListItemDto[]>(`/api/photos/user/${userId}`);
+    return res.data;
+  },
   create: async (data: { title: string; caption?: string; location?: string; peoplePresent?: string[] }): Promise<PhotoDetailDto> => {
     const res = await apiClient.post<PhotoDetailDto>('/api/photos', data);
     return res.data;
@@ -210,6 +214,10 @@ export const videoService = {
   },
   getMine: async (): Promise<VideoListItemDto[]> => {
     const res = await apiClient.get<VideoListItemDto[]>('/api/videos/mine');
+    return res.data;
+  },
+  getByUser: async (userId: string): Promise<VideoListItemDto[]> => {
+    const res = await apiClient.get<VideoListItemDto[]>(`/api/videos/user/${userId}`);
     return res.data;
   },
   create: async (data: { title: string; caption?: string }): Promise<VideoDetailDto> => {
@@ -374,6 +382,10 @@ export const sharedPostService = {
   },
   getMySharedPosts: async (): Promise<SharedPostDto[]> => {
     const res = await apiClient.get<SharedPostDto[]>('/api/photos/shared/mine');
+    return res.data;
+  },
+  getUserSharedPosts: async (userId: string): Promise<SharedPostDto[]> => {
+    const res = await apiClient.get<SharedPostDto[]>(`/api/photos/shared/user/${userId}`);
     return res.data;
   },
   getSharedPostsFeed: async (): Promise<SharedPostDto[]> => {
